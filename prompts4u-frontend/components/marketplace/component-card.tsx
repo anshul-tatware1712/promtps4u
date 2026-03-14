@@ -150,18 +150,15 @@ export function ComponentCard({
         </Button>
         <Button
           onClick={() => onCopy(component)}
-          disabled={isPaidLocked}
-          className={cn(
-            "flex-1 h-10 rounded-xl",
-            !isPaidLocked && "bg-primary",
-          )}
+          variant={isPaidLocked ? "secondary" : "default"}
+          className="flex-1 h-10 rounded-xl"
           size="sm"
           data-cursor="hover"
         >
           {isPaidLocked ? (
             <>
               <Lock className="h-4 w-4 mr-1" />
-              Upgrade
+              Upgrade to Pro
             </>
           ) : isPaidUnlocked ? (
             <>

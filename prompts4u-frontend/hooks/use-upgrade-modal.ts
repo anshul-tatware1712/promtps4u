@@ -27,8 +27,10 @@ export function useUpgradeModal() {
   const initiatePayment = useCallback(async () => {
     try {
       setIsProcessing(true);
+      toast.loading('Initializing payment...', { id: 'payment-toast' });
 
       const order = await paymentsApi.createOrder();
+      toast.dismiss('payment-toast'); // Dismiss the loading toast when razorpay opens
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -39,6 +41,7 @@ export function useUpgradeModal() {
         order_id: order.id,
         handler: async (response: any) => {
           try {
+            toast.loading('Verifying payment...', { id: 'payment-toast' });
             const result = await paymentsApi.verifyPayment(
               response.razorpay_order_id,
               response.razorpay_payment_id,
@@ -47,6 +50,7 @@ export function useUpgradeModal() {
 
             if (result.success) {
               toast.success('Subscription activated!', {
+                id: 'payment-toast',
                 description: 'You now have access to all Pro prompts.',
               });
               await refreshUser?.();
@@ -54,6 +58,7 @@ export function useUpgradeModal() {
             }
           } catch (error) {
             toast.error('Payment verification failed', {
+              id: 'payment-toast',
               description: 'Please contact support.',
             });
           }
@@ -72,6 +77,7 @@ export function useUpgradeModal() {
       razorpay.open();
     } catch (error) {
       toast.error('Failed to create order', {
+        id: 'payment-toast',
         description: 'Please try again.',
       });
     } finally {

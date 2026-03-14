@@ -14,23 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, User, LogOut, LayoutDashboard, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const navLinks = [
     { href: "/#about", label: "About" },
@@ -41,14 +31,7 @@ export function Navbar() {
   ];
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300 border-b",
-        scrolled
-          ? "bg-background/80 backdrop-blur-xl shadow-lg border-primary/10"
-          : "bg-background/60 backdrop-blur-md border-transparent",
-      )}
-    >
+    <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b bg-background/50 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6">
           <Link
@@ -56,7 +39,7 @@ export function Navbar() {
             className="flex items-center space-x-2 group"
             data-cursor="hover"
           >
-            <span className="font-bold text-xl tracking-tight">Prompts4U</span>
+            Prompts4u
           </Link>
           <nav className="hidden lg:flex items-center gap-6">
             {navLinks.map((link) => (
@@ -99,7 +82,8 @@ export function Navbar() {
                       />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {user?.name?.charAt(0) ||
-                          user?.email.charAt(0).toUpperCase()}
+                          user?.email?.charAt(0)?.toUpperCase() ||
+                          "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -120,7 +104,6 @@ export function Navbar() {
                     onClick={() => router.push("/dashboard")}
                     className="gap-2 cursor-pointer"
                   >
-                    <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -163,22 +146,30 @@ export function Navbar() {
           )}
         </div>
 
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger>
+            <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-10 w-10 text-foreground"
                 data-cursor="hover"
               >
                 <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] p-0">
-              <div className="flex flex-col h-full">
-                <div className="p-6 border-b">
-                  <Link href="/" className="flex items-center space-x-2">
+            <SheetContent
+              side="right"
+              className="w-[300px] p-0 sm:max-w-[300px]"
+            >
+              <div className="flex flex-col h-[100dvh]">
+                <div className="p-6 border-b flex-shrink-0">
+                  <Link
+                    href="/"
+                    className="flex items-center space-x-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     <span className="font-bold text-xl">Prompts4U</span>
                   </Link>
                 </div>
@@ -194,7 +185,7 @@ export function Navbar() {
                     </Link>
                   ))}
                 </nav>
-                <div className="p-6 border-t space-y-3">
+                <div className="p-6 border-t space-y-3 flex-shrink-0 bg-background">
                   {isAuthenticated ? (
                     <>
                       <div className="flex items-center gap-3 pb-4 border-b">
@@ -205,12 +196,15 @@ export function Navbar() {
                           />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {user?.name?.charAt(0) ||
-                              user?.email.charAt(0).toUpperCase()}
+                              user?.email?.charAt(0)?.toUpperCase() ||
+                              "U"}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium">{user?.name || "User"}</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="overflow-hidden">
+                          <p className="font-medium truncate">
+                            {user?.name || "User"}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
                             {user?.email}
                           </p>
                         </div>
@@ -218,8 +212,8 @@ export function Navbar() {
                       <Button
                         className="w-full gap-2"
                         onClick={() => {
-                          router.push("/dashboard");
                           setMobileMenuOpen(false);
+                          router.push("/dashboard");
                         }}
                       >
                         <LayoutDashboard className="h-4 w-4" />
@@ -229,8 +223,9 @@ export function Navbar() {
                         variant="outline"
                         className="w-full gap-2"
                         onClick={() => {
-                          logout();
                           setMobileMenuOpen(false);
+                          logout();
+                          router.push("/");
                         }}
                       >
                         <LogOut className="h-4 w-4" />
@@ -242,8 +237,8 @@ export function Navbar() {
                       <Button
                         className="w-full gap-2"
                         onClick={() => {
-                          router.push("/login");
                           setMobileMenuOpen(false);
+                          router.push("/login");
                         }}
                       >
                         <User className="h-4 w-4" />
@@ -253,8 +248,8 @@ export function Navbar() {
                         variant="outline"
                         className="w-full gap-2"
                         onClick={() => {
-                          router.push("/marketplace");
                           setMobileMenuOpen(false);
+                          router.push("/marketplace");
                         }}
                       >
                         Browse Marketplace

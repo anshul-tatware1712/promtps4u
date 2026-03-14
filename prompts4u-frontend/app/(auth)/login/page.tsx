@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,23 +23,33 @@ function LoginForm() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/marketplace";
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push(next);
+    }
+  }, [isAuthenticated, router, next]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      toast.loading("Sending OTP...", { id: "auth-toast" });
       await authApi.sendOtp(email);
       setOtpSent(true);
       toast.success("OTP sent!", {
+        id: "auth-toast",
         description: "Check your email for the 6-digit code.",
       });
     } catch (error) {
       toast.error("Failed to send OTP", {
+        id: "auth-toast",
         description: "Please try again.",
       });
     } finally {
@@ -52,11 +62,12 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
+      toast.loading("Verifying code...", { id: "auth-toast" });
       const response = await authApi.verifyOtp(email, otp);
       console.log("OTP verification response:", response);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       login((response as any).token, (response as any).user);
-      toast.success("Logged in successfully!");
+      toast.success("Logged in successfully!", { id: "auth-toast" });
       router.push(next);
     } catch (error: any) {
       console.error("OTP verification error:", error);
@@ -64,6 +75,7 @@ function LoginForm() {
       const errorMessage =
         error?.response?.data?.message || "Invalid or expired OTP";
       toast.error(errorMessage, {
+        id: "auth-toast",
         description: "Please check the code and try again.",
       });
     } finally {
@@ -75,6 +87,10 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
+      toast.loading("Redirecting to " + provider + "...", { id: "auth-toast" });
+      // Store provider in sessionStorage for callback
+      sessionStorage.setItem("oauth_provider", provider);
+
       const clientId =
         provider === "github"
           ? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
@@ -94,6 +110,7 @@ function LoginForm() {
       window.location.href = oauthUrl;
     } catch (error) {
       toast.error("OAuth login failed", {
+        id: "auth-toast",
         description: "Please try again.",
       });
       setIsLoading(false);
@@ -101,7 +118,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto min-h-screen px-4 py-16">
       <div className="max-w-md mx-auto space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Welcome back</h1>

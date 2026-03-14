@@ -15,6 +15,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to set cookie
+function setAuthCookie(token: string) {
+  document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+// Helper to remove cookie
+function removeAuthCookie() {
+  document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .catch(() => {
           localStorage.removeItem("auth_token");
+          removeAuthCookie();
         })
         .finally(() => {
           setIsLoading(false);
@@ -40,11 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (token: string, userData: User) => {
     localStorage.setItem("auth_token", token);
+    setAuthCookie(token);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("auth_token");
+    removeAuthCookie();
     setUser(null);
   };
 

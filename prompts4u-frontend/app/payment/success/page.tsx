@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { paymentsApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,8 +18,12 @@ function PaymentVerificationContent() {
     success: boolean;
     message: string;
   } | null>(null);
+  const isVerifyingRef = useRef(false);
 
   useEffect(() => {
+    if (isVerifyingRef.current) return;
+    isVerifyingRef.current = true;
+
     const verifyPayment = async () => {
       const paymentId = searchParams.get('razorpay_payment_id');
       const paymentLinkId = searchParams.get('razorpay_payment_link_id');
@@ -38,6 +42,7 @@ function PaymentVerificationContent() {
       }
 
       try {
+        toast.loading('Verifying your payment...', { id: 'payment-verify' });
         // First, check the payment link status
         const statusResponse = await paymentsApi.getPaymentLinkStatus(paymentLinkId);
 
@@ -54,7 +59,7 @@ function PaymentVerificationContent() {
               message: 'Payment successful! Your Pro subscription is now active.',
             });
 
-            toast.success('Payment successful! Pro subscription activated.');
+            toast.success('Payment successful! Pro subscription activated.', { id: 'payment-verify' });
 
             // Redirect to dashboard after 3 seconds
             setTimeout(() => {
@@ -65,20 +70,20 @@ function PaymentVerificationContent() {
               success: false,
               message: verification.message || 'Payment verification failed',
             });
-            toast.error('Payment verification failed. Please contact support.');
+            toast.error('Payment verification failed. Please contact support.', { id: 'payment-verify' });
           }
         } else if (statusResponse.status === 'failed' || statusResponse.status === 'cancelled' || statusResponse.status === 'expired') {
           setVerificationResult({
             success: false,
             message: `Payment was not completed. Status: ${statusResponse.status}`,
           });
-          toast.error('Payment was not completed. Please try again.');
+          toast.error('Payment was not completed. Please try again.', { id: 'payment-verify' });
         } else {
           setVerificationResult({
             success: false,
             message: 'Payment status is pending. Please contact support if this persists.',
           });
-          toast.error('Payment status is pending.');
+          toast.error('Payment status is pending.', { id: 'payment-verify' });
         }
       } catch (error) {
         console.error('Payment verification error:', error);
@@ -86,7 +91,7 @@ function PaymentVerificationContent() {
           success: false,
           message: (error as Error).message || 'An error occurred during verification',
         });
-        toast.error('Failed to verify payment. Please contact support.');
+        toast.error('Failed to verify payment. Please contact support.', { id: 'payment-verify' });
       } finally {
         setIsVerifying(false);
       }

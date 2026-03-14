@@ -21,7 +21,9 @@ function DropdownMenuTrigger({
   ...props
 }: MenuPrimitive.Trigger.Props & { asChild?: boolean }) {
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, props)
+    return (
+      <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" render={children} {...props} />
+    )
   }
   return (
     <MenuPrimitive.Trigger
@@ -73,11 +75,11 @@ function DropdownMenuLabel({
   className,
   inset,
   ...props
-}: MenuPrimitive.GroupLabel.Props & {
+}: React.ComponentProps<"div"> & {
   inset?: boolean
 }) {
   return (
-    <MenuPrimitive.GroupLabel
+    <div
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(
