@@ -4,6 +4,24 @@
 
 Prompts4U is a developer marketplace for AI prompts that generate production-ready UI components. Users browse, preview, and copy prompts optimized for Claude Code, Cursor, OpenRouter, and other AI coding tools.
 
+## Repository Structure
+
+This is a **single monorepo** - all code is tracked in one git repository.
+
+```
+prompts4u.dev/
+├── .git/                 # Single git repository
+├── .gitignore            # Root gitignore
+├── GIT_STRUCTURE.md      # Guide for git workflow
+├── prompts4u-frontend/   # Next.js 15 frontend
+├── prompts4u-backend/    # NestJS backend
+└── packages/types/       # Shared TypeScript types
+```
+
+All git commands are run from the root directory. See [GIT_STRUCTURE.md](./GIT_STRUCTURE.md) for detailed workflow guide.
+
+**Remote:** https://github.com/anshul-tatware1712/promtps4u.git
+
 ## Project Structure
 
 ```
