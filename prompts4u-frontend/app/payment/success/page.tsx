@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { paymentsApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/common/auth-provider';
 
-export default function PaymentSuccessPage() {
+function PaymentVerificationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, refreshUser } = useAuth();
@@ -151,5 +151,22 @@ export default function PaymentSuccessPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 flex flex-col items-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <PaymentVerificationContent />
+    </Suspense>
   );
 }

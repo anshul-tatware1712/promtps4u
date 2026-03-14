@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/components/common/auth-provider';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { componentsApi } from '@/lib/api';
-import { Component } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Copy, Clock } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/components/common/auth-provider";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { componentsApi } from "@/lib/api";
+import { Component } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Copy, Clock } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -21,13 +27,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login?next=/dashboard');
+      router.push("/login?next=/dashboard");
     }
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     // Load recent copies (in production, fetch from API)
-    componentsApi.getAll({ limit: 3 })
+    componentsApi
+      .getAll({ limit: 3 })
       .then((res) => {
         setRecentCopies(res.data);
       })
@@ -38,17 +45,19 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const isPro = user?.subscriptionStatus === 'active';
+  const isPro = user?.subscriptionStatus === "active";
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container min-h-screen mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Manage your account and saved prompts</p>
+          <p className="text-muted-foreground">
+            Manage your account and saved prompts
+          </p>
         </div>
-        <Badge variant={isPro ? 'default' : 'secondary'} className="text-sm">
-          {isPro ? 'Pro Plan' : 'Free Plan'}
+        <Badge variant={isPro ? "default" : "secondary"} className="text-sm">
+          {isPro ? "Pro Plan" : "Free Plan"}
         </Badge>
       </div>
 
@@ -66,10 +75,15 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Subscription</p>
-              <p className="font-medium capitalize">{user?.subscriptionStatus}</p>
+              <p className="font-medium capitalize">
+                {user?.subscriptionStatus}
+              </p>
             </div>
             {!isPro && (
-              <Button className="w-full" onClick={() => router.push('/marketplace')}>
+              <Button
+                className="w-full"
+                onClick={() => router.push("/marketplace")}
+              >
                 Upgrade to Pro
               </Button>
             )}
@@ -120,10 +134,15 @@ export default function DashboardPage() {
             ) : recentCopies.length > 0 ? (
               <div className="space-y-3">
                 {recentCopies.map((component) => (
-                  <div key={component.id} className="flex items-center justify-between p-2 rounded-lg border">
+                  <div
+                    key={component.id}
+                    className="flex items-center justify-between p-2 rounded-lg border"
+                  >
                     <div>
                       <p className="font-medium text-sm">{component.name}</p>
-                      <p className="text-xs text-muted-foreground">{component.category}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {component.category}
+                      </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {component.tier}

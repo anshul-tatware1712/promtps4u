@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Lock, Eye, Copy } from 'lucide-react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Component } from '@/types';
-import { componentsApi } from '@/lib/api';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from "react";
+import { Lock, Eye, Copy } from "lucide-react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Component } from "@/types";
+import { componentsApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CATEGORIES: Record<string, string> = {
-  hero: 'Hero',
-  pricing: 'Pricing',
-  testimonials: 'Testimonials',
-  features: 'Features',
-  cta: 'CTA',
-  faq: 'FAQ',
+  hero: "Hero",
+  pricing: "Pricing",
+  testimonials: "Testimonials",
+  features: "Features",
+  cta: "CTA",
+  faq: "FAQ",
 };
 
 export function ComponentPreviewSection() {
@@ -43,14 +43,19 @@ export function ComponentPreviewSection() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
         {isLoading
-          ? Array.from({ length: 6 }).map((_, i) => <ComponentCardSkeleton key={i} />)
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <ComponentCardSkeleton key={i} />
+            ))
           : components.map((component) => (
               <ComponentCard key={component.id} component={component} />
             ))}
       </div>
 
       <div className="text-center mt-8">
-        <Button size="lg" onClick={() => window.location.href = '/marketplace'}>
+        <Button
+          size="lg"
+          onClick={() => (window.location.href = "/marketplace")}
+        >
           View All Components
         </Button>
       </div>
@@ -69,7 +74,7 @@ function ComponentCard({ component }: { component: Component }) {
             </Badge>
             <p className="text-sm text-muted-foreground">{component.name}</p>
           </div>
-          {component.tier === 'paid' && (
+          {component.tier === "paid" && (
             <Badge className="absolute top-2 right-2 bg-primary">
               <Lock className="h-3 w-3 mr-1" />
               Pro
@@ -88,7 +93,7 @@ function ComponentCard({ component }: { component: Component }) {
           <Eye className="h-4 w-4 mr-1" />
           Preview
         </Button>
-        <Button size="sm" className="flex-1" disabled={component.tier === 'paid'}>
+        <Button size="sm" className="flex-1" disabled={component.tier === "paid"}>
           <Copy className="h-4 w-4 mr-1" />
           Copy
         </Button>

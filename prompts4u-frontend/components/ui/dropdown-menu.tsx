@@ -17,6 +17,7 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
 function DropdownMenuTrigger({
   children,
   asChild,
+  className,
   ...props
 }: MenuPrimitive.Trigger.Props & { asChild?: boolean }) {
   if (asChild && React.isValidElement(children)) {
@@ -25,9 +26,11 @@ function DropdownMenuTrigger({
   return (
     <MenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      className={className}
       {...props}
-      render={children}
-    />
+    >
+      {children}
+    </MenuPrimitive.Trigger>
   )
 }
 
