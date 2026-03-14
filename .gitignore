@@ -1,0 +1,60 @@
+# Monorepo root .gitignore
+
+# Dependencies (all packages)
+**/node_modules/
+**/.pnp/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Environment files (keep examples, ignore actual env files)
+**/.env
+**/.env.*
+!.env.example
+
+# Build outputs
+**/dist/
+**/build/
+**/.next/
+**/.vercel/
+**/out/
+
+# Testing
+**/coverage/
+**/.nyc_output/
+**/*.log
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# TypeScript
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Prisma
+**/prisma/*.db
+**/prisma/*.db-journal
+**/prisma/migrations/**/migration_lock.toml
+
+# Playwright
+**/.playwright/
+**/test-results/
+
+# Temporary files
+tmp/
+temp/
+
+# macOS
+.DS_Store
+
+# Misc
+*.pem
