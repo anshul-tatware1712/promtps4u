@@ -125,7 +125,7 @@ model DetectedComponent {
 model Prompt {
   id              String             @id @default(uuid())
   componentId     String?
-  pageId          String
+  pageId          String?
   promptText      String
   componentType   String
   screenshotUrl   String?
@@ -142,7 +142,7 @@ model Prompt {
   tags            String[]
   title           String?
   component       DetectedComponent? @relation(fields: [componentId], references: [id])
-  page            Page               @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page            Page?              @relation(fields: [pageId], references: [id], onDelete: Cascade)
   mixMasterJob    MixMasterJob?
 
   @@index([status])

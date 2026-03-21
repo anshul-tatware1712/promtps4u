@@ -11,6 +11,7 @@ import { CopyTrackingModule } from './modules/copy-tracking/copy-tracking.module
 import { PrismaModule } from './common/prisma/prisma.module';
 import { ScraperModule } from './scraper/scraper.module';
 import { AiModule } from './ai/ai.module';
+import { MixMasterModule } from './mix-master/mix-master.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { AiModule } from './ai/ai.module';
     CopyTrackingModule,
     ScraperModule,
     AiModule,
+    MixMasterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

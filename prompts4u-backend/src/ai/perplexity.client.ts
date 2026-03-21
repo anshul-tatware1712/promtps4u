@@ -21,10 +21,10 @@ export class PerplexityClient {
       this.configService.get<string>('PERPLEXITY_API_KEY');
 
     if (this.provider === 'alibaba') {
-      // Alibaba DashScope - Qwen 3.5 Plus
-      this.model = 'qwen3.5-plus';
+      // Alibaba DashScope - Qwen 3.5 (Singapore endpoint)
+      this.model = 'qwen3.5-122b-a10b';
       this.axiosInstance = axios.create({
-        baseURL: 'https://dashscope.aliyuncs.com/api/v1',
+        baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
         headers: {
           Authorization: `Bearer ${alibabaApiKey}`,
           'Content-Type': 'application/json',
@@ -35,8 +35,8 @@ export class PerplexityClient {
         `PerplexityClient initialized with Alibaba Qwen: ${this.model}`,
       );
     } else {
-      // Perplexity AI - GPT-5.2
-      this.model = 'openai/gpt-5.2';
+      // Perplexity AI - Latest model
+      this.model = 'sonar';
       this.axiosInstance = axios.create({
         baseURL: 'https://api.perplexity.ai',
         headers: {
@@ -81,36 +81,25 @@ export class PerplexityClient {
   }
 
   /**
-   * Chat with Alibaba DashScope (Qwen)
+   * Chat with Alibaba DashScope (Qwen) - OpenAI compatible mode
    */
   private async chatWithAlibaba(
     systemPrompt: string,
     userContent: string,
     jsonMode: boolean,
   ): Promise<string> {
-    const response = await this.axiosInstance.post(
-      '/services/aigc/text-generation/generation',
-      {
-        model: this.model,
-        input: {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent },
-          ],
-        },
-        parameters: {
-          temperature: jsonMode ? 0.1 : 0.7,
-          max_tokens: jsonMode ? 4000 : 2000,
-          result_format: 'message',
-        },
-      },
-    );
+    const response = await this.axiosInstance.post('/chat/completions', {
+      model: this.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
+      temperature: jsonMode ? 0.1 : 0.7,
+      max_tokens: jsonMode ? 4000 : 2000,
+      response_format: jsonMode ? { type: 'json_object' } : undefined,
+    });
 
-    return (
-      response.data.output?.choices?.[0]?.message?.content ||
-      response.data.output?.text ||
-      ''
-    );
+    return response.data.choices?.[0]?.message?.content || '';
   }
 
   /**
@@ -123,7 +112,7 @@ export class PerplexityClient {
     jsonMode: boolean,
   ): Promise<string> {
     // Using Perplexity AI SDK approach via REST API
-    const response = await this.axiosInstance.post('/chat/completions', {
+    const payload: any = {
       model: this.model,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -131,8 +120,15 @@ export class PerplexityClient {
       ],
       temperature: jsonMode ? 0.1 : 0.4,
       max_tokens: jsonMode ? 4000 : 2000,
-      response_format: jsonMode ? { type: 'json_object' } : undefined,
-    });
+    };
+
+    // Perplexity doesn't support json_object format, so we omit response_format
+    // and rely on the system prompt to guide JSON output
+
+    const response = await this.axiosInstance.post(
+      '/chat/completions',
+      payload,
+    );
 
     return response.data.choices?.[0]?.message?.content || '';
   }

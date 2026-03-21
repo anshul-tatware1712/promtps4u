@@ -7,12 +7,14 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
+import { IsString } from 'class-validator';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { PagesService } from './pages.service';
 import * as crypto from 'crypto';
 
 export class SubmitUrlDto {
+  @IsString()
   url: string;
 }
 
