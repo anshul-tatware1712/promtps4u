@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/common/auth-provider";
+import { useAdmin } from "@/hooks/use-admin";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,12 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, User, LogOut, LayoutDashboard, Sparkles } from "lucide-react";
+import { Menu, User, LogOut, LayoutDashboard, Sparkles, Settings, FileText, Images, Layers, Blend } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { isAdmin } = useAdmin();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -28,6 +30,13 @@ export function Navbar() {
     { href: "/marketplace", label: "Marketplace" },
     { href: "/#pricing", label: "Pricing" },
     { href: "/#contact", label: "Contact" },
+  ];
+
+  const adminLinks = [
+    { href: "/admin/components", label: "Components", icon: Layers },
+    { href: "/admin/scrape", label: "Scrape Pages", icon: Images },
+    { href: "/admin/pages", label: "View All Pages", icon: FileText },
+    { href: "/admin/mix-master", label: "Mix Master", icon: Blend },
   ];
 
   return (
@@ -59,6 +68,36 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {isAuthenticated ? (
             <>
+              {isAdmin && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="gap-2 text-primary"
+                      data-cursor="hover"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Admin
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      Admin Panel
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {adminLinks.map((link) => (
+                      <DropdownMenuItem
+                        key={link.href}
+                        onClick={() => router.push(link.href)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <link.icon className="h-4 w-4" />
+                        {link.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <Button
                 variant="ghost"
                 onClick={() => router.push("/dashboard")}
@@ -184,6 +223,24 @@ export function Navbar() {
                       {link.label}
                     </Link>
                   ))}
+                  {isAdmin && (
+                    <div className="pt-4 mt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Admin Panel
+                      </p>
+                      {adminLinks.map((link) => (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-2 py-2 text-lg font-medium text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <link.icon className="h-4 w-4" />
+                          {link.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </nav>
                 <div className="p-6 border-t space-y-3 flex-shrink-0 bg-background">
                   {isAuthenticated ? (
