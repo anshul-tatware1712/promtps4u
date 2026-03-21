@@ -3,7 +3,10 @@ import { Job } from 'bull';
 import { chromium } from 'playwright';
 import { ScreenshotService } from './screenshot.service';
 import { HtmlCleanerService } from './html-cleaner.service';
+import { AiService, DetectedComponent } from '../ai/ai.service';
+import { PagesService } from './pages.service';
 import { DeepScrapeResult, ScrapeJob } from './scraper.types';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ScraperService {
@@ -12,6 +15,8 @@ export class ScraperService {
   constructor(
     private readonly screenshotService: ScreenshotService,
     private readonly cleanerService: HtmlCleanerService,
+    private readonly aiService: AiService,
+    private readonly pagesService: PagesService,
   ) {}
 
   /**
@@ -25,6 +30,7 @@ export class ScraperService {
 
     try {
       // ── STAGE 1: Launch browser ─────────────────────────────────
+      await this.pagesService.updateStatus(pageId, 'scraping');
       await job.progress(5);
       this.logger.log('Launching browser...');
 
@@ -111,8 +117,9 @@ export class ScraperService {
         this.cleanerService.deepClean(desktopHtml);
       await job.progress(65);
 
-      // ── STAGE 7: Prepare result for AI processing ────────────────
-      this.logger.log('Preparing data for AI detection...');
+      // ── STAGE 7: AI Component Detection ──────────────────────────
+      await this.pagesService.updateStatus(pageId, 'detecting');
+      this.logger.log('Running AI component detection...');
 
       const scrapeResult: DeepScrapeResult = {
         url,
@@ -134,25 +141,111 @@ export class ScraperService {
         },
       };
 
-      // For now, log the result - AI processing will be added in Phase 6
-      this.logger.log(
-        `Scrape complete: ${url} - ${cleanedHtml.length} chars cleaned HTML`,
+      const components = await this.aiService.detectComponents(scrapeResult);
+      await job.progress(75);
+
+      // ── STAGE 8: Save components to DB ───────────────────────────
+      this.logger.log('Saving components to database...');
+      const savedComponents = await this.pagesService.saveComponents(
+        pageId,
+        components,
       );
-      this.logger.log(
-        `Extracted: ${interactionStates.length} interactions, ${animations.length} animations, ${svgElements.length} SVGs`,
+      await job.progress(80);
+
+      // ── STAGE 9: Generate prompts + crop screenshots ─────────────
+      await this.pagesService.updateStatus(pageId, 'generating');
+      this.logger.log('Generating prompts for components...');
+
+      const promptResults = await Promise.all(
+        savedComponents.map(async (component: any, index: number) => {
+          // Reconstruct component object for AI
+          const componentData: DetectedComponent = {
+            id: component.id,
+            type: component.componentType,
+            title: `${component.designStyle || ''} ${component.componentType}`.trim(),
+            position: component.positionOnPage,
+            colorScheme: component.colorScheme,
+            designStyle: component.designStyle,
+            layout: component.layoutDescription
+              ? JSON.parse(component.layoutDescription)
+              : null,
+            interactiveElements: component.interactionStates,
+            animations: component.animations,
+            colorTokens: component.cssTokens,
+            svgElements: component.svgElements,
+            responsiveBehavior: component.responsiveBehavior,
+            boundingBox: null,
+          };
+
+          // Crop screenshot for this component (using placeholder rect for now)
+          let cropUrl = screenshotUrl;
+          if (componentData.boundingBox) {
+            cropUrl = await this.screenshotService.cropComponent(
+              screenshotBuffer,
+              component.id,
+              componentData.boundingBox,
+            );
+          }
+
+          // Generate prompt
+          const promptText = await this.aiService.generatePrompt(
+            componentData,
+            scrapeResult,
+          );
+
+          // Suggest media
+          const suggestedImages = await this.aiService.suggestMedia(componentData);
+
+          return {
+            componentId: component.id,
+            promptText,
+            componentType: component.componentType,
+            title: componentData.title,
+            screenshotUrl: cropUrl,
+            suggestedImages,
+            tags: this.generateTags(componentData),
+          };
+        }),
       );
 
+      await job.progress(90);
+
+      // ── STAGE 10: Save prompts to DB ─────────────────────────────
+      this.logger.log('Saving prompts to database...');
+      await this.pagesService.savePrompts(pageId, promptResults);
+
+      // ── STAGE 11: Mark page as done ──────────────────────────────
+      await this.pagesService.markDone(pageId, screenshotUrl, title);
       await job.progress(100);
 
-      // Return placeholder - actual prompt count will come from AI service
-      return { promptCount: 1 };
+      this.logger.log(
+        `Scrape complete: ${url} → ${promptResults.length} prompts generated`,
+      );
+
+      return { promptCount: promptResults.length };
     } catch (error) {
       this.logger.error(`Scrape failed: ${url}`, error);
+      await this.pagesService.markFailed(pageId, error.message);
       if (browser) {
         await browser.close().catch(() => {});
       }
       throw error;
     }
+  }
+
+  /**
+   * Generate tags from component
+   */
+  private generateTags(component: DetectedComponent): string[] {
+    const tags: string[] = [];
+
+    if (component.colorScheme) tags.push(component.colorScheme);
+    if (component.designStyle) tags.push(component.designStyle);
+    if (component.specialEffects) tags.push(...component.specialEffects);
+    if (component.mediaElements?.hasVideo) tags.push('video-bg');
+    if (component.animations?.length) tags.push('animated');
+
+    return tags;
   }
 
   /**

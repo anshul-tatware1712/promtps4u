@@ -10,6 +10,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { CopyTrackingModule } from './modules/copy-tracking/copy-tracking.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { ScraperModule } from './scraper/scraper.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ScraperModule } from './scraper/scraper.module';
     PaymentsModule,
     CopyTrackingModule,
     ScraperModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

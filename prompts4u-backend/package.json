@@ -36,6 +36,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.11",
     "@nestjs/platform-fastify": "^11.1.16",
+    "@perplexity-ai/perplexity_ai": "^0.26.2",
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.6",
     "bull": "^4.16.5",

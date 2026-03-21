@@ -4,6 +4,10 @@ import { ScreenshotService } from './screenshot.service';
 import { HtmlCleanerService } from './html-cleaner.service';
 import { ScraperService } from './scraper.service';
 import { ScraperProcessor } from './scraper.processor';
+import { PagesService } from './pages.service';
+import { AdminPagesController } from './admin-pages.controller';
+import { AiModule } from '../ai/ai.module';
+import { PrismaModule } from '../common/prisma/prisma.module';
 
 @Module({
   imports: [
@@ -19,17 +23,22 @@ import { ScraperProcessor } from './scraper.processor';
         removeOnFail: 1000,
       },
     }),
+    AiModule,
+    PrismaModule,
   ],
   providers: [
     ScreenshotService,
     HtmlCleanerService,
     ScraperService,
     ScraperProcessor,
+    PagesService,
   ],
+  controllers: [AdminPagesController],
   exports: [
     ScreenshotService,
     HtmlCleanerService,
     ScraperService,
+    PagesService,
     BullModule,
   ],
 })
