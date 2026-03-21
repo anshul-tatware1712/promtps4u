@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,17 +9,17 @@ datasource db {
 }
 
 model User {
-  id                 String        @id @default(cuid())
-  email              String        @unique
+  id                 String         @id @default(cuid())
+  email              String         @unique
   name               String?
   avatar             String?
-  phone              String?
-  provider           String        // 'github' | 'google' | 'email'
+  provider           String
   providerId         String?
-  subscriptionStatus String        @default("free") // 'free' | 'active' | 'cancelled'
+  subscriptionStatus String         @default("free")
   subscriptionId     String?
   subscriptionEnd    DateTime?
-  createdAt          DateTime      @default(now())
+  createdAt          DateTime       @default(now())
+  phone              String?
   copies             CopyLog[]
   paymentLinks       PaymentLink[]
 }
@@ -32,11 +29,11 @@ model Component {
   slug            String    @unique
   name            String
   description     String
-  category        String    // 'header' | 'hero' | 'pricing' | 'testimonials' | 'about' | 'features' | 'footer' | 'cta' | 'faq'
-  tier            String    @default("free") // 'free' | 'paid'
-  promptContent   String    @db.Text
+  category        String
+  tier            String    @default("free")
+  promptContent   String
   previewImageUrl String?
-  previewCode     String?   @db.Text
+  previewCode     String?
   tags            String[]
   copyCount       Int       @default(0)
   createdAt       DateTime  @default(now())
@@ -44,12 +41,12 @@ model Component {
 }
 
 model CopyLog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   componentId String
-  copiedAt    DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  copiedAt    DateTime  @default(now())
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([componentId])
@@ -69,12 +66,12 @@ model OtpCode {
 model PaymentLink {
   id            String   @id @default(cuid())
   userId        String
-  paymentLinkId String   @unique // Razorpay payment link ID (pl_...)
+  paymentLinkId String   @unique
   amount        Int
   currency      String   @default("INR")
-  status        String   @default("pending") // 'pending', 'paid', 'failed', 'expired', 'cancelled'
+  status        String   @default("pending")
   expiresAt     DateTime
-  referenceId   String   @unique // Our internal reference ID
+  referenceId   String   @unique
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -82,4 +79,84 @@ model PaymentLink {
   @@index([userId])
   @@index([paymentLinkId])
   @@index([status])
+}
+
+model Page {
+  id                String              @id @default(uuid())
+  url               String              @unique
+  urlHash           String              @unique
+  title             String?
+  fullScreenshotUrl String?
+  scrapeStatus      String              @default("pending")
+  scrapeError       String?
+  scrapedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  submittedAt       DateTime            @default(now())
+  components        DetectedComponent[]
+  prompts           Prompt[]
+
+  @@index([scrapeStatus])
+  @@index([urlHash])
+}
+
+model DetectedComponent {
+  id                 String   @id @default(uuid())
+  pageId             String
+  componentType      String
+  layoutDescription  String?
+  colorScheme        String?
+  designStyle        String?
+  interactionStates  Json?
+  animations         Json?
+  cssTokens          Json?
+  svgElements        Json?
+  responsiveBehavior String?
+  detectionRaw       Json?
+  cropScreenshotUrl  String?
+  positionOnPage     Int
+  createdAt          DateTime @default(now())
+  page               Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  prompts            Prompt[]
+
+  @@index([pageId])
+  @@index([componentType])
+}
+
+model Prompt {
+  id              String             @id @default(uuid())
+  componentId     String?
+  pageId          String
+  promptText      String
+  componentType   String
+  screenshotUrl   String?
+  copyCount       Int                @default(0)
+  upvotes         Int                @default(0)
+  downvotes       Int                @default(0)
+  createdAt       DateTime           @default(now())
+  category        String?
+  isMixMaster     Boolean            @default(false)
+  publishedAt     DateTime?
+  sourcePromptIds String[]
+  status          String             @default("draft")
+  suggestedImages Json?
+  tags            String[]
+  title           String?
+  component       DetectedComponent? @relation(fields: [componentId], references: [id])
+  page            Page               @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  mixMasterJob    MixMasterJob?
+
+  @@index([status])
+  @@index([category])
+  @@index([componentType])
+}
+
+model MixMasterJob {
+  id              String   @id @default(uuid())
+  category        String
+  sourcePromptIds String[]
+  resultPromptId  String?  @unique
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  resultPrompt    Prompt?  @relation(fields: [resultPromptId], references: [id])
 }
