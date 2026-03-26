@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AdminPageGuard } from "@/components/admin/admin-page-guard";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { StatusBadge } from "@/components/admin/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +60,7 @@ export default function AdminMixMasterPage() {
   const fetchPrompts = async (category: string) => {
     try {
       const response = await apiClient.get<Prompt[]>(
-        `/admin/mix-master/prompts/${category}`
+        `/admin/mix-master/prompts/${category}`,
       );
       setAvailablePrompts(response.data);
     } catch (error) {
@@ -99,7 +98,6 @@ export default function AdminMixMasterPage() {
     <AdminPageGuard redirectLogin="/admin/mix-master">
       <div className="container min-h-screen mx-auto px-4 py-8">
         <AdminPageHeader
-          icon={Blend}
           title="Mix Master"
           description="Synthesize multiple prompts into superior combinations"
         />
@@ -129,26 +127,12 @@ export default function AdminMixMasterPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-3">How Mix Master Works</h3>
-                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Select a component category</li>
-                  <li>Choose 2+ published prompts</li>
-                  <li>AI synthesizes the best elements</li>
-                  <li>Get a superior combined prompt</li>
-                  <li>New prompt is auto-published</li>
-                </ol>
-              </CardContent>
-            </Card>
-
             {selectedCategory && (
               <Button
                 className="w-full gap-2"
                 onClick={() => setIsDialogOpen(true)}
                 disabled={selectedPromptIds.length < 2}
               >
-                <Sparkles className="h-4 w-4" />
                 Create Mix ({selectedPromptIds.length}/2+)
               </Button>
             )}
@@ -157,7 +141,9 @@ export default function AdminMixMasterPage() {
           <div className="md:col-span-2">
             <Card>
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-2">Available Prompts</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Available Prompts
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {selectedCategory
                     ? `Select prompts from ${selectedCategory} category to mix`
@@ -186,7 +172,7 @@ export default function AdminMixMasterPage() {
                           setSelectedPromptIds((prev) =>
                             prev.includes(prompt.id)
                               ? prev.filter((id) => id !== prompt.id)
-                              : [...prev, prompt.id]
+                              : [...prev, prompt.id],
                           );
                         }}
                       >
@@ -206,7 +192,8 @@ export default function AdminMixMasterPage() {
                                   <Badge variant="outline">
                                     {prompt.componentType}
                                   </Badge>
-                                  {prompt.status === PROMPT_STATUS.PUBLISHED && (
+                                  {prompt.status ===
+                                    PROMPT_STATUS.PUBLISHED && (
                                     <Badge className="bg-green-500 gap-1">
                                       <Check className="h-3 w-3" />
                                       Published
@@ -296,7 +283,11 @@ function MixDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isCreating}
+          >
             Cancel
           </Button>
           <Button onClick={onCreate} disabled={isCreating}>

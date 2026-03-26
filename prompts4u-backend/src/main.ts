@@ -38,12 +38,13 @@ async function bootstrap() {
     origin: frontendUrl,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control'],
   });
 
   const port = configService.get('PORT', 3001);
   await app.listen(port, '0.0.0.0');
 
   console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`SSE endpoint available at: http://localhost:${port}/sse/scrape-progress`);
 }
 bootstrap();

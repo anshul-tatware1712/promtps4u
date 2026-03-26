@@ -1,13 +1,10 @@
 // Admin configuration and constants
 
+import { ADMIN_ROUTES } from "@/config/routes";
+
 export const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
-export const ADMIN_ROUTES = {
-  COMPONENTS: "/admin/components",
-  SCRAPE: "/admin/scrape",
-  PAGES: "/admin/pages",
-  MIX_MASTER: "/admin/mix-master",
-} as const;
+export { ADMIN_ROUTES };
 
 export const COMPONENT_CATEGORIES = [
   "navbar",

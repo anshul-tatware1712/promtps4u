@@ -29,6 +29,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",
     "@fastify/formbody": "^8.0.2",
+    "@fastify/websocket": "^11.2.0",
     "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^11.0.17",
     "@nestjs/config": "^4.0.3",
@@ -37,6 +38,8 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.11",
     "@nestjs/platform-fastify": "^11.1.16",
+    "@nestjs/platform-socket.io": "^11.1.17",
+    "@nestjs/websockets": "^11.1.17",
     "@perplexity-ai/perplexity_ai": "^0.26.2",
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.6",
@@ -57,7 +60,8 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^6.9.3",
     "rxjs": "^7.8.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

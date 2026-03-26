@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiClient } from "@/lib/api/client";
-import { FileText, Eye, Search, ExternalLink, Copy } from "lucide-react";
+import { FileText, Eye, Search, ExternalLink, Copy, CheckCircle2, Circle, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Page {
@@ -47,13 +47,28 @@ interface Prompt {
   title?: string;
 }
 
+interface PageDetailsResponse {
+  id: string;
+  url: string;
+  urlHash: string;
+  title?: string;
+  fullScreenshotUrl?: string;
+  scrapeStatus: string;
+  scrapeError?: string;
+  scrapedAt?: string;
+  createdAt: string;
+  submittedAt: string;
+  components: any[];
+  prompts: Prompt[];
+}
+
 export default function AdminPagesPage() {
   const router = useRouter();
   const [pages, setPages] = useState<Page[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPage, setSelectedPage] = useState<Page | null>(null);
-  const [pageDetails, setPageDetails] = useState<Page & { components?: any[]; prompts?: Prompt[] } | null>(null);
+  const [pageDetails, setPageDetails] = useState<PageDetailsResponse | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -73,7 +88,7 @@ export default function AdminPagesPage() {
 
   const fetchPageDetails = async (pageId: string) => {
     try {
-      const response = await apiClient.get(`/admin/pages/${pageId}`);
+      const response = await apiClient.get<PageDetailsResponse>(`/admin/pages/${pageId}`);
       setPageDetails(response.data);
     } catch (error) {
       console.error("Failed to fetch page details:", error);
@@ -91,6 +106,52 @@ export default function AdminPagesPage() {
     toast.success("Prompt copied to clipboard");
   };
 
+  const handleTogglePromptStatus = async (promptId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === "published" ? "draft" : "published";
+      await apiClient.patch(`/admin/pages/prompts/${promptId}/status`, {
+        status: newStatus,
+      });
+      toast.success(newStatus === "published" ? "Prompt published" : "Prompt unpublished");
+
+      // Refresh page details to show updated status
+      if (selectedPage) {
+        await fetchPageDetails(selectedPage.id);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to update status");
+    }
+  };
+
+  const handlePublishAllPrompts = async () => {
+    if (!selectedPage) return;
+
+    try {
+      await apiClient.post(`/admin/pages/pages/${selectedPage.id}/publish`);
+      toast.success("All prompts published");
+      await fetchPageDetails(selectedPage.id);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to publish prompts");
+    }
+  };
+
+  const handleUnpublishAllPrompts = async () => {
+    if (!selectedPage) return;
+
+    try {
+      await apiClient.post(`/admin/pages/pages/${selectedPage.id}/unpublish`);
+      toast.success("All prompts unpublished");
+      await fetchPageDetails(selectedPage.id);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to unpublish prompts");
+    }
+  };
+
+  const handleAddNewComponent = () => {
+    router.push(`/admin/components`);
+    toast.info("Navigate to Components page to create a new component");
+  };
+
   const filteredPages = pages.filter(
     (page) =>
       page.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -101,7 +162,6 @@ export default function AdminPagesPage() {
     <AdminPageGuard redirectLogin="/admin/pages">
       <div className="container min-h-screen mx-auto px-4 py-8">
         <AdminPageHeader
-          icon={FileText}
           title="View All Pages"
           description="Browse all scraped pages with their components and prompts"
         />
@@ -196,6 +256,10 @@ export default function AdminPagesPage() {
             page={selectedPage}
             pageDetails={pageDetails}
             onCopyPrompt={handleCopyPrompt}
+            onTogglePromptStatus={handleTogglePromptStatus}
+            onPublishAll={handlePublishAllPrompts}
+            onUnpublishAll={handleUnpublishAllPrompts}
+            onAddNewComponent={handleAddNewComponent}
           />
         )}
       </div>
@@ -207,8 +271,12 @@ interface PageDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   page: Page;
-  pageDetails: Page & { components?: any[]; prompts?: Prompt[] };
+  pageDetails: PageDetailsResponse;
   onCopyPrompt: (text: string) => void;
+  onTogglePromptStatus: (promptId: string, currentStatus: string) => void;
+  onPublishAll: () => void;
+  onUnpublishAll: () => void;
+  onAddNewComponent: () => void;
 }
 
 function PageDetailsDialog({
@@ -217,7 +285,14 @@ function PageDetailsDialog({
   page,
   pageDetails,
   onCopyPrompt,
+  onTogglePromptStatus,
+  onPublishAll,
+  onUnpublishAll,
+  onAddNewComponent,
 }: PageDetailsDialogProps) {
+  const publishedCount = pageDetails?.prompts?.filter((p) => p.status === "published").length || 0;
+  const totalCount = pageDetails?.prompts?.length || 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -268,7 +343,7 @@ function PageDetailsDialog({
             </div>
           </div>
 
-          {pageDetails.components && pageDetails.components.length > 0 && (
+          {pageDetails?.components && pageDetails.components.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-3">Detected Components</h3>
               <div className="grid gap-3">
@@ -291,20 +366,65 @@ function PageDetailsDialog({
             </div>
           )}
 
-          {pageDetails.prompts && pageDetails.prompts.length > 0 && (
+          {pageDetails?.prompts && pageDetails.prompts.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-3">Generated Prompts</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">
+                  Generated Prompts ({publishedCount}/{totalCount} published)
+                </h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onAddNewComponent}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Component
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onUnpublishAll}
+                    disabled={publishedCount === 0}
+                  >
+                    Unpublish All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onPublishAll}
+                    disabled={publishedCount === totalCount}
+                  >
+                    Publish All
+                  </Button>
+                </div>
+              </div>
               <div className="grid gap-3">
                 {pageDetails.prompts.map((prompt) => (
                   <Card key={prompt.id}>
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline">{prompt.componentType}</Badge>
-                          <div className="flex gap-2">
-                            <Badge variant="secondary" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{prompt.componentType}</Badge>
+                            <Badge variant={prompt.status === "published" ? "default" : "secondary"} className="text-xs">
                               {prompt.status}
                             </Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onTogglePromptStatus(prompt.id, prompt.status)}
+                              className="h-8"
+                            >
+                              {prompt.status === "published" ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -333,8 +453,8 @@ function PageDetailsDialog({
             </div>
           )}
 
-          {(!pageDetails.components || pageDetails.components.length === 0) &&
-            (!pageDetails.prompts || pageDetails.prompts.length === 0) && (
+          {(!pageDetails?.components || pageDetails.components.length === 0) &&
+            (!pageDetails?.prompts || pageDetails.prompts.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 No components or prompts detected yet. The page may still be processing.
               </div>

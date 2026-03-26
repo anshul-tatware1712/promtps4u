@@ -20,11 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UpgradeModal } from "@/components/payment/upgrade-modal";
 import { PreviewDialog } from "@/components/marketplace/preview-dialog";
 import { useAuth } from "@/components/common/auth-provider";
-import { Sparkles, Filter, Grid3x3 } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
+import { Filter } from "lucide-react";
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState("");

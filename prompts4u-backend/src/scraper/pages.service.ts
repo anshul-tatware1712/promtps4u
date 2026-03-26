@@ -206,4 +206,65 @@ export class PagesService {
       },
     });
   }
+
+  /**
+   * Update prompt status
+   */
+  async updatePromptStatus(promptId: string, status: 'draft' | 'published') {
+    const updatedPrompt = await this.prisma.prompt.update({
+      where: { id: promptId },
+      data: {
+        status,
+        publishedAt: status === 'published' ? new Date() : null,
+      },
+    });
+    this.logger.log(`Prompt ${promptId} status updated to: ${status}`);
+    return updatedPrompt;
+  }
+
+  /**
+   * Publish all prompts from a page
+   */
+  async publishPagePrompts(pageId: string) {
+    const result = await this.prisma.prompt.updateMany({
+      where: { pageId, status: 'draft' },
+      data: {
+        status: 'published',
+        publishedAt: new Date(),
+      },
+    });
+
+    const prompts = await this.prisma.prompt.findMany({
+      where: { pageId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      publishedCount: result.count,
+      prompts,
+    };
+  }
+
+  /**
+   * Unpublish all prompts from a page
+   */
+  async unpublishPagePrompts(pageId: string) {
+    const result = await this.prisma.prompt.updateMany({
+      where: { pageId, status: 'published' },
+      data: {
+        status: 'draft',
+        publishedAt: null,
+      },
+    });
+
+    const prompts = await this.prisma.prompt.findMany({
+      where: { pageId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      unpublishedCount: result.count,
+      prompts,
+    };
+  }
 }

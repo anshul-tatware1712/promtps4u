@@ -6,6 +6,7 @@ import { HtmlCleanerService } from './html-cleaner.service';
 import { AiService, DetectedComponent } from '../ai/ai.service';
 import { PagesService } from './pages.service';
 import { DeepScrapeResult, ScrapeJob } from './scraper.types';
+import { ScrapeProgressService } from './scrape-progress.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class ScraperService {
     private readonly cleanerService: HtmlCleanerService,
     private readonly aiService: AiService,
     private readonly pagesService: PagesService,
+    private readonly progressService: ScrapeProgressService,
   ) {}
 
   /**
@@ -32,6 +34,7 @@ export class ScraperService {
       // ── STAGE 1: Launch browser ─────────────────────────────────
       await this.pagesService.updateStatus(pageId, 'scraping');
       await job.progress(5);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 5, 'Launching browser...');
       this.logger.log('Launching browser...');
 
       browser = await chromium.launch({
@@ -63,6 +66,7 @@ export class ScraperService {
       await page.waitForTimeout(1000);
 
       await job.progress(20);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 20, 'Loading page content...');
       this.logger.log('Page loaded, extracting content...');
 
       // ── STAGE 3: Extract everything ─────────────────────────────
@@ -80,6 +84,7 @@ export class ScraperService {
       ]);
 
       await job.progress(40);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 40, 'Extracting page content...');
 
       // ── STAGE 4: Mobile + tablet snapshots ──────────────────────
       this.logger.log('Capturing responsive snapshots...');
@@ -102,6 +107,7 @@ export class ScraperService {
 
       await browser.close();
       await job.progress(55);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 55, 'Capturing responsive layouts...');
 
       // ── STAGE 5: Screenshot upload ───────────────────────────────
       this.logger.log('Uploading screenshot...');
@@ -110,16 +116,19 @@ export class ScraperService {
         screenshotBuffer,
       );
       await job.progress(60);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 60, 'Uploading screenshot...');
 
       // ── STAGE 6: HTML cleaning ───────────────────────────────────
       this.logger.log('Cleaning HTML...');
       const { cleanedHtml, cssTokens, fontsUsed, colorPalette } =
         this.cleanerService.deepClean(desktopHtml);
       await job.progress(65);
+      this.progressService.broadcastStageUpdate(pageId, 'scraping', 65, 'Cleaning HTML structure...');
 
       // ── STAGE 7: AI Component Detection ──────────────────────────
       await this.pagesService.updateStatus(pageId, 'detecting');
       this.logger.log('Running AI component detection...');
+      this.progressService.broadcastStageUpdate(pageId, 'detecting', 70, 'Detecting UI components with AI...');
 
       const scrapeResult: DeepScrapeResult = {
         url,
@@ -143,6 +152,7 @@ export class ScraperService {
 
       const components = await this.aiService.detectComponents(scrapeResult);
       await job.progress(75);
+      this.progressService.broadcastStageUpdate(pageId, 'detecting', 75, `Found ${components.length} components`);
 
       // ── STAGE 8: Save components to DB ───────────────────────────
       this.logger.log('Saving components to database...');
@@ -151,10 +161,12 @@ export class ScraperService {
         components,
       );
       await job.progress(80);
+      this.progressService.broadcastStageUpdate(pageId, 'detecting', 80, 'Saving components to database...');
 
       // ── STAGE 9: Generate prompts + crop screenshots ─────────────
       await this.pagesService.updateStatus(pageId, 'generating');
       this.logger.log('Generating prompts for components...');
+      this.progressService.broadcastStageUpdate(pageId, 'generating', 85, 'Generating AI prompts...');
 
       const promptResults = await Promise.all(
         savedComponents.map(async (component: any, index: number) => {
@@ -209,10 +221,12 @@ export class ScraperService {
       );
 
       await job.progress(90);
+      this.progressService.broadcastStageUpdate(pageId, 'generating', 90, 'Finalizing prompts...');
 
       // ── STAGE 10: Save prompts to DB ─────────────────────────────
       this.logger.log('Saving prompts to database...');
       await this.pagesService.savePrompts(pageId, promptResults);
+      await job.progress(95);
 
       // ── STAGE 11: Mark page as done ──────────────────────────────
       await this.pagesService.markDone(pageId, screenshotUrl, title);
@@ -222,10 +236,17 @@ export class ScraperService {
         `Scrape complete: ${url} → ${promptResults.length} prompts generated`,
       );
 
+      // Broadcast completion
+      this.progressService.broadcastCompletion(pageId, promptResults.length);
+
       return { promptCount: promptResults.length };
     } catch (error) {
       this.logger.error(`Scrape failed: ${url}`, error);
       await this.pagesService.markFailed(pageId, error.message);
+
+      // Broadcast failure
+      this.progressService.broadcastFailure(pageId, error.message);
+
       if (browser) {
         await browser.close().catch(() => {});
       }

@@ -14,9 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, User, LogOut, LayoutDashboard, Sparkles, Settings, FileText, Images, Layers, Blend } from "lucide-react";
+import { Menu, User, LogOut, LayoutDashboard, Settings } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { PUBLIC_ROUTES, ADMIN_ROUTES } from "@/config/routes";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -25,18 +26,18 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "/#about", label: "About" },
-    { href: "/#features", label: "Features" },
-    { href: "/marketplace", label: "Marketplace" },
-    { href: "/#pricing", label: "Pricing" },
-    { href: "/#contact", label: "Contact" },
+    { href: PUBLIC_ROUTES.ABOUT, label: "About" },
+    { href: PUBLIC_ROUTES.FEATURES, label: "Features" },
+    { href: PUBLIC_ROUTES.MARKETPLACE, label: "Marketplace" },
+    { href: PUBLIC_ROUTES.PRICING, label: "Pricing" },
+    { href: PUBLIC_ROUTES.CONTACT, label: "Contact" },
   ];
 
   const adminLinks = [
-    { href: "/admin/components", label: "Components", icon: Layers },
-    { href: "/admin/scrape", label: "Scrape Pages", icon: Images },
-    { href: "/admin/pages", label: "View All Pages", icon: FileText },
-    { href: "/admin/mix-master", label: "Mix Master", icon: Blend },
+    { href: ADMIN_ROUTES.COMPONENTS, label: "Components" },
+    { href: ADMIN_ROUTES.SCRAPE, label: "Scrape Pages" },
+    { href: ADMIN_ROUTES.PAGES, label: "View All Pages" },
+    { href: ADMIN_ROUTES.MIX_MASTER, label: "Mix Master" },
   ];
 
   return (
@@ -91,7 +92,6 @@ export function Navbar() {
                         onClick={() => router.push(link.href)}
                         className="gap-2 cursor-pointer"
                       >
-                        <link.icon className="h-4 w-4" />
                         {link.label}
                       </DropdownMenuItem>
                     ))}
@@ -100,7 +100,7 @@ export function Navbar() {
               )}
               <Button
                 variant="ghost"
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push(PUBLIC_ROUTES.DASHBOARD)}
                 className="gap-2"
                 data-cursor="link"
               >
@@ -140,13 +140,13 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => router.push("/dashboard")}
+                    onClick={() => router.push(PUBLIC_ROUTES.DASHBOARD)}
                     className="gap-2 cursor-pointer"
                   >
                     Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => router.push("/marketplace")}
+                    onClick={() => router.push(PUBLIC_ROUTES.MARKETPLACE)}
                     className="gap-2 cursor-pointer"
                   >
                     Marketplace
@@ -155,7 +155,7 @@ export function Navbar() {
                   <DropdownMenuItem
                     onClick={() => {
                       logout();
-                      router.push("/");
+                      router.push(PUBLIC_ROUTES.HOME);
                     }}
                     className="gap-2 cursor-pointer text-destructive"
                   >
@@ -169,13 +169,13 @@ export function Navbar() {
             <>
               <Button
                 variant="ghost"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push(PUBLIC_ROUTES.LOGIN)}
                 data-cursor="link"
               >
                 Log in
               </Button>
               <Button
-                onClick={() => router.push("/marketplace")}
+                onClick={() => router.push(PUBLIC_ROUTES.MARKETPLACE)}
                 className="gap-2"
                 data-cursor="hover"
               >
@@ -235,7 +235,6 @@ export function Navbar() {
                           onClick={() => setMobileMenuOpen(false)}
                           className="flex items-center gap-2 py-2 text-lg font-medium text-muted-foreground hover:text-primary transition-colors"
                         >
-                          <link.icon className="h-4 w-4" />
                           {link.label}
                         </Link>
                       ))}
@@ -270,7 +269,7 @@ export function Navbar() {
                         className="w-full gap-2"
                         onClick={() => {
                           setMobileMenuOpen(false);
-                          router.push("/dashboard");
+                          router.push(PUBLIC_ROUTES.DASHBOARD);
                         }}
                       >
                         <LayoutDashboard className="h-4 w-4" />
@@ -282,7 +281,7 @@ export function Navbar() {
                         onClick={() => {
                           setMobileMenuOpen(false);
                           logout();
-                          router.push("/");
+                          router.push(PUBLIC_ROUTES.HOME);
                         }}
                       >
                         <LogOut className="h-4 w-4" />
@@ -295,7 +294,7 @@ export function Navbar() {
                         className="w-full gap-2"
                         onClick={() => {
                           setMobileMenuOpen(false);
-                          router.push("/login");
+                          router.push(PUBLIC_ROUTES.LOGIN);
                         }}
                       >
                         <User className="h-4 w-4" />
@@ -306,7 +305,7 @@ export function Navbar() {
                         className="w-full gap-2"
                         onClick={() => {
                           setMobileMenuOpen(false);
-                          router.push("/marketplace");
+                          router.push(PUBLIC_ROUTES.MARKETPLACE);
                         }}
                       >
                         Browse Marketplace
