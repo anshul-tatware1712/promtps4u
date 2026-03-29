@@ -9,19 +9,44 @@ export interface ScrapeJob {
 }
 
 export interface InteractionState {
-  stateName: string; // 'hover' | 'open' | 'closed' | 'active' | 'focus'
+  stateName: string; // 'hover' | 'focus' | 'focus-visible' | 'active'
   selector: string; // CSS selector of the element
-  htmlSnapshot: string; // HTML at this state
-  cssChanges: string[]; // which CSS properties changed
+  tagName: string;
+  id?: string;
+  className?: string;
+  role?: string;
+  ariaLabel?: string;
+  textContent?: string;
+  styleChanges?: Record<string, { from: string; to: string }>;
+  classChanges?: string[];
+  tailwindHints?: string[];
 }
 
 export interface AnimationInfo {
+  type: 'keyframes' | 'transition' | 'inline' | 'transform';
   selector: string;
-  animationName: string;
-  duration: string;
-  easing: string;
-  delay: string;
-  keyframes?: string;
+  animationName?: string;
+  duration?: string;
+  timingFunction?: string;
+  delay?: string;
+  iterationCount?: string;
+  direction?: string;
+  fillMode?: string;
+  keyframeRules?: string;
+  transition?: string;
+  transitionProperty?: string;
+  transitionDuration?: string;
+  transitionTimingFunction?: string;
+  transitionDelay?: string;
+  inlineStyle?: string;
+  computedAnimation?: {
+    name: string;
+    duration: string;
+    timingFunction: string;
+    delay: string;
+  };
+  transform?: string;
+  transformOrigin?: string;
 }
 
 export interface SvgElement {
@@ -41,6 +66,23 @@ export interface CssTokens {
   transitions: string[];
 }
 
+export interface StyleSnapshot {
+  selector: string;
+  elementType: string;
+  role?: string;
+  ariaLabel?: string;
+  textContent?: string;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  computedStyles: Record<string, string>;
+  tailwindClasses: string[];
+  children?: StyleSnapshot[];
+}
+
 export interface DeepScrapeResult {
   url: string;
   title: string;
@@ -51,6 +93,7 @@ export interface DeepScrapeResult {
   interactionStates: InteractionState[];
   animations: AnimationInfo[];
   svgElements: SvgElement[];
+  styleSnapshots: StyleSnapshot[]; // NEW - Phase 2
   responsiveHtml: {
     mobile: string;
     tablet: string;

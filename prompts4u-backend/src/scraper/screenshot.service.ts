@@ -24,7 +24,6 @@ export class ScreenshotService {
     const r2AccessKey = this.configService.get<string>('R2_ACCESS_KEY');
     const r2SecretKey = this.configService.get<string>('R2_SECRET_KEY');
 
-    // Use R2 if all credentials are provided
     this.useR2 = !!(r2Endpoint && r2AccessKey && r2SecretKey);
 
     if (this.useR2) {
@@ -39,7 +38,6 @@ export class ScreenshotService {
       this.logger.log('ScreenshotService: Using Cloudflare R2 storage');
     } else {
       this.uploadDir = this.configService.get<string>('LOCAL_UPLOAD_DIR') || './uploads';
-      // Ensure upload directory exists
       if (!fs.existsSync(this.uploadDir)) {
         fs.mkdirSync(this.uploadDir, { recursive: true });
       }
@@ -47,9 +45,6 @@ export class ScreenshotService {
     }
   }
 
-  /**
-   * Upload a full page screenshot
-   */
   async uploadFullPage(pageId: string, buffer: Buffer): Promise<string> {
     if (this.useR2 && this.r2Client) {
       return this.uploadToR2(`pages/${pageId}/full.png`, buffer);
@@ -58,16 +53,12 @@ export class ScreenshotService {
     }
   }
 
-  /**
-   * Crop and upload a component screenshot
-   */
   async cropComponent(
     fullBuffer: Buffer,
     componentId: string,
     rect: CropRect,
   ): Promise<string> {
     try {
-      // Get image metadata to clamp to bounds
       const meta = await sharp(fullBuffer).metadata();
       const safeRect = {
         left: Math.max(0, rect.x),
@@ -76,7 +67,6 @@ export class ScreenshotService {
         height: Math.min(rect.height, (meta.height || 0) - rect.y),
       };
 
-      // Crop the image
       const cropped = await sharp(fullBuffer)
         .extract(safeRect)
         .png()
@@ -93,9 +83,6 @@ export class ScreenshotService {
     }
   }
 
-  /**
-   * Upload buffer to R2 bucket
-   */
   private async uploadToR2(key: string, buffer: Buffer): Promise<string> {
     const bucket = this.configService.get<string>('R2_BUCKET');
     const publicUrl = this.configService.get<string>('R2_PUBLIC_URL');
@@ -120,22 +107,16 @@ export class ScreenshotService {
     }
   }
 
-  /**
-   * Save buffer to local filesystem
-   */
   private async uploadLocal(key: string, buffer: Buffer): Promise<string> {
     const filePath = path.join(this.uploadDir, key);
     const dir = path.dirname(filePath);
 
-    // Ensure directory exists
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // Write file
     fs.writeFileSync(filePath, buffer);
 
-    // Return local URL path
     const localUrl = `/uploads/${key}`;
     this.logger.log(`Screenshot saved locally: ${localUrl}`);
     return localUrl;

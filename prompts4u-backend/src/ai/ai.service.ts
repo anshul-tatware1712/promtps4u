@@ -28,6 +28,7 @@ export interface DetectedComponent {
     width: number;
     height: number;
   };
+  styleSnapshot?: any; // NEW - for detailed style info
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class AiService {
   async detectComponents(scrapeResult: DeepScrapeResult): Promise<DetectedComponent[]> {
     this.logger.log('Detecting components with AI...');
 
-    // Build context for the AI
+    // Build context for the AI with all data sources
     const userContent = JSON.stringify({
       url: scrapeResult.url,
       title: scrapeResult.title,
@@ -61,6 +62,7 @@ export class AiService {
         mobile: scrapeResult.responsiveHtml.mobile.slice(0, 10000),
       },
       fontsUsed: scrapeResult.fontsUsed,
+      styleSnapshots: scrapeResult.styleSnapshots, // NEW - for detailed style analysis
     });
 
     const raw = await this.perplexity.chat(DETECT_SYSTEM_PROMPT, userContent, true);
@@ -100,6 +102,9 @@ export class AiService {
       globalCssTokens: scrapeResult.cssTokens,
       pageUrl: scrapeResult.url,
       fontsUsed: scrapeResult.fontsUsed,
+      styleSnapshots: scrapeResult.styleSnapshots,
+      interactionStates: scrapeResult.interactionStates,
+      animations: scrapeResult.animations,
     });
 
     const promptText = await this.perplexity.chat(

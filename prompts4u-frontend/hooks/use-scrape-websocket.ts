@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api/client";
 
 export interface ScrapeProgressEvent {
   type:
@@ -26,142 +27,66 @@ export interface ScrapePageState {
   lastUpdated: string | null;
 }
 
+// Polling interval in milliseconds
+const POLLING_INTERVAL = 2000; // 2 seconds
+
 export function useScrapeWebSocket(pageId?: string) {
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [pageStates, setPageStates] = useState<Record<string, ScrapePageState>>(
-    {},
-  );
+  const [pageStates, setPageStates] = useState<Record<string, ScrapePageState>>({});
+  const [polledPages, setPolledPages] = useState<Set<string>>(new Set());
 
-  const connect = useCallback(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    const sseUrl = pageId
-      ? `${apiUrl}/sse/scrape-progress/${pageId}`
-      : `${apiUrl}/sse/scrape-progress`;
+  // Poll for all pages progress
+  const pollPages = useCallback(async () => {
+    try {
+      const response = await apiClient.get("/admin/pages");
+      const pages = response.data;
 
-    console.log("Connecting to SSE:", sseUrl);
+      // Update states for all pages
+      const newStates: Record<string, ScrapePageState> = {};
 
-    // Cancel any existing connection
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    const connectSSE = async () => {
-      try {
-        const response = await fetch(sseUrl, {
-          method: "GET",
-          headers: {
-            "Accept": "text/event-stream",
-          },
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`SSE connection failed with status: ${response.status}`);
+      for (const page of pages) {
+        // Only poll for pages that are actively being processed
+        if (page.scrapeStatus === "pending" || page.scrapeStatus === "scraping" ||
+            page.scrapeStatus === "detecting" || page.scrapeStatus === "generating") {
+          newStates[page.id] = {
+            progress: mapStatusToProgress(page.scrapeStatus),
+            status: page.scrapeStatus,
+            stage: page.scrapeStatus,
+            message: getStageMessage(page.scrapeStatus),
+            lastUpdated: new Date().toISOString(),
+          };
         }
-
-        setIsConnected(true);
-        console.log("SSE connection opened");
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("ReadableStream not supported");
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            console.log("SSE connection closed by server");
-            break;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              try {
-                const event: ScrapeProgressEvent = JSON.parse(data);
-
-                if (event.type === "connected") {
-                  console.log("Connected to SSE stream:", data);
-                }
-
-                if (event.pageId) {
-                  setPageStates((prev) => ({
-                    ...prev,
-                    [event.pageId]: {
-                      progress: event.progress ?? prev[event.pageId]?.progress ?? 0,
-                      status: event.status ?? prev[event.pageId]?.status ?? "pending",
-                      stage: event.stage ?? prev[event.pageId]?.stage ?? "",
-                      message: event.message ?? "",
-                      lastUpdated: event.timestamp,
-                    },
-                  }));
-
-                  // Show toast for important events
-                  if (event.type === "completed") {
-                    toast.success(
-                      `Scrape completed for page ${event.pageId.slice(0, 8)}`,
-                    );
-                  } else if (event.type === "failed") {
-                    toast.error(`Scrape failed: ${event.error || "Unknown error"}`);
-                  } else if (event.type === "stage_update" && event.message) {
-                    if (event.stage === "detecting" || event.stage === "generating") {
-                      toast.info(event.message);
-                    }
-                  }
-                }
-              } catch (err) {
-                console.error("Failed to parse SSE message:", err, "data:", data);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          console.log("SSE connection aborted");
-          return;
-        }
-        console.error("SSE error:", error);
-        setIsConnected(false);
-
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log("Attempting to reconnect SSE...");
-          connect();
-        }, 3000);
       }
-    };
 
-    connectSSE();
-  }, [pageId]);
+      if (Object.keys(newStates).length > 0) {
+        setPageStates(prev => ({ ...prev, ...newStates }));
+        setIsConnected(true);
+      }
+    } catch (error) {
+      console.error("Polling failed:", error);
+      setIsConnected(false);
+    }
+  }, []);
 
+  // Start polling when pageId changes or on mount
   useEffect(() => {
-    connect();
+    // Initial fetch
+    pollPages();
+
+    // Set up polling interval
+    pollingIntervalRef.current = setInterval(pollPages, POLLING_INTERVAL);
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
     };
-  }, [connect]);
+  }, [pollPages]);
 
   const getPageState = useCallback(
     (pageId: string): ScrapePageState | undefined => {
@@ -175,4 +100,44 @@ export function useScrapeWebSocket(pageId?: string) {
     pageStates,
     getPageState,
   };
+}
+
+// Helper function to map status to progress percentage
+function mapStatusToProgress(status: string): number {
+  switch (status) {
+    case "pending":
+      return 0;
+    case "scraping":
+      return 25;
+    case "detecting":
+      return 50;
+    case "generating":
+      return 75;
+    case "completed":
+      return 100;
+    case "failed":
+      return 0;
+    default:
+      return 10;
+  }
+}
+
+// Helper function to get stage message
+function getStageMessage(status: string): string {
+  switch (status) {
+    case "pending":
+      return "Waiting to start...";
+    case "scraping":
+      return "Scraping page content...";
+    case "detecting":
+      return "Detecting UI components with AI...";
+    case "generating":
+      return "Generating prompts...";
+    case "completed":
+      return "Completed!";
+    case "failed":
+      return "Failed to scrape";
+    default:
+      return "";
+  }
 }

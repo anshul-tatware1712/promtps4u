@@ -6,8 +6,6 @@ import { ScraperService } from './scraper.service';
 import { ScraperProcessor } from './scraper.processor';
 import { PagesService } from './pages.service';
 import { AdminPagesController } from './admin-pages.controller';
-import { ScrapeProgressService } from './scrape-progress.service';
-import { ScrapeProgressController } from './scrape-progress.controller';
 import { AiModule } from '../ai/ai.module';
 import { PrismaModule } from '../common/prisma/prisma.module';
 
@@ -34,15 +32,13 @@ import { PrismaModule } from '../common/prisma/prisma.module';
     ScraperService,
     ScraperProcessor,
     PagesService,
-    ScrapeProgressService,
   ],
-  controllers: [AdminPagesController, ScrapeProgressController],
+  controllers: [AdminPagesController],
   exports: [
     ScreenshotService,
     HtmlCleanerService,
     ScraperService,
     PagesService,
-    ScrapeProgressService,
     BullModule,
   ],
 })

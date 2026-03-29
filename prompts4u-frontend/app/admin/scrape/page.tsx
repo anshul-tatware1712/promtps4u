@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/collapsible";
 import { apiClient } from "@/lib/api/client";
 import { formatDate } from "@/config/admin";
-import { Images, Upload, RefreshCw, Eye, ChevronRight, Activity, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Upload, RefreshCw, Eye, ChevronRight, Activity, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useScrapeWebSocket, ScrapePageState } from "@/hooks/use-scrape-websocket";
 
@@ -44,15 +44,6 @@ interface PageWithLiveState extends Page {
   liveState?: ScrapePageState;
 }
 
-const STAGE_ICONS: Record<string, any> = {
-  scraping: Activity,
-  detecting: Activity,
-  generating: Activity,
-  completed: CheckCircle2,
-  failed: AlertCircle,
-  pending: Clock,
-};
-
 const STAGE_LABELS: Record<string, string> = {
   scraping: "Scraping page content",
   detecting: "Detecting UI components with AI",
@@ -70,16 +61,15 @@ export default function AdminScrapePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
 
-  // Connect to WebSocket for real-time updates
+  // Polling for status updates
   const { isConnected, getPageState } = useScrapeWebSocket();
 
   useEffect(() => {
     fetchPages();
-    // No more polling - WebSocket handles real-time updates
     return () => {};
   }, []);
 
-  // Update pages with live WebSocket state
+  // Update pages with live polling state
   useEffect(() => {
     setPages((prevPages) =>
       prevPages.map((page) => ({
@@ -126,15 +116,9 @@ export default function AdminScrapePage() {
     }
   };
 
-  const getStageIcon = (status: string, liveState?: ScrapePageState) => {
-    const currentStatus = liveState?.status || status;
-    return STAGE_ICONS[currentStatus] || Clock;
-  };
-
   const getStageLabel = (status: string, liveState?: ScrapePageState) => {
-    const currentStatus = liveState?.status || status;
-    const stage = liveState?.stage;
-    return stage ? STAGE_LABELS[stage] || stage : STAGE_LABELS[currentStatus] || currentStatus;
+    const stage = liveState?.stage || status;
+    return STAGE_LABELS[stage] || stage;
   };
 
   return (
@@ -145,12 +129,15 @@ export default function AdminScrapePage() {
           description="Submit URLs for component detection and prompt generation"
         />
 
-        {/* WebSocket Connection Status */}
+        {/* Polling Status Indicator */}
         <div className="mb-4 flex items-center gap-2">
           <Badge variant={isConnected ? "default" : "secondary"} className="gap-1">
             <Activity className="h-3 w-3" />
-            {isConnected ? "Live Updates Connected" : "Connecting..."}
+            {isConnected ? "Live Updates Active" : "Connecting..."}
           </Badge>
+          <span className="text-xs text-muted-foreground">
+            (Updates every 2 seconds)
+          </span>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -218,9 +205,8 @@ export default function AdminScrapePage() {
                   <div className="space-y-3">
                     {pages.map((page) => {
                       const liveState = page.liveState;
-                      const hasLiveUpdate = liveState?.lastUpdated;
-                      const isProcessing = !["completed", "failed"].includes(liveState?.status || page.scrapeStatus);
-                      const Icon = getStageIcon(page.scrapeStatus, liveState);
+                      const currentStatus = liveState?.status || page.scrapeStatus;
+                      const isProcessing = !["completed", "failed"].includes(currentStatus);
 
                       return (
                         <Collapsible
@@ -228,32 +214,27 @@ export default function AdminScrapePage() {
                           open={expandedPageId === page.id}
                           onOpenChange={(open: boolean) => setExpandedPageId(open ? page.id : null)}
                         >
-                          <div className={`rounded-lg border transition-all ${hasLiveUpdate && isProcessing ? "border-primary/50 bg-primary/5" : ""}`}>
+                          <div className={`rounded-lg border ${isProcessing ? "border-primary/50 bg-primary/5" : ""}`}>
                             <div className="p-4 flex items-center justify-between gap-4">
                               <div
                                 className="flex-1 min-w-0 space-y-2 cursor-pointer"
                                 onClick={() => setExpandedPageId(page.id === expandedPageId ? null : page.id)}
                               >
                                 <div className="flex items-center gap-2">
-                                  <Icon className={`h-4 w-4 ${isProcessing ? "animate-pulse text-primary" : "text-muted-foreground"}`} />
+                                  <Activity className={`h-4 w-4 ${isProcessing ? "animate-pulse text-primary" : "text-muted-foreground"}`} />
                                   <p className="font-medium truncate flex-1">
                                     {page.title || page.url}
                                   </p>
-                                  <StatusBadge status={liveState?.status || page.scrapeStatus} />
-                                  {hasLiveUpdate && isProcessing && (
-                                    <Badge variant="outline" className="text-xs animate-pulse">
-                                      LIVE
-                                    </Badge>
-                                  )}
+                                  <StatusBadge status={currentStatus} />
                                 </div>
 
                                 {/* Progress bar for active scrapes */}
-                                {isProcessing && (liveState?.progress || page.scrapeStatus === "processing") && (
+                                {isProcessing && (
                                   <div className="space-y-1">
-                                    <Progress value={liveState?.progress || 0} className="h-2" />
+                                    <Progress value={liveState?.progress || 25} className="h-2" />
                                     <div className="flex justify-between text-xs text-muted-foreground">
                                       <span>{getStageLabel(page.scrapeStatus, liveState)}</span>
-                                      <span>{Math.round(liveState?.progress || 0)}%</span>
+                                      <span>{Math.round(liveState?.progress || 25)}%</span>
                                     </div>
                                   </div>
                                 )}
@@ -316,12 +297,6 @@ export default function AdminScrapePage() {
                                     );
                                   })}
                                 </div>
-
-                                {liveState?.message && (
-                                  <div className="p-3 bg-muted rounded-md text-sm">
-                                    <p className="text-muted-foreground">{liveState.message}</p>
-                                  </div>
-                                )}
                               </div>
                             </CollapsibleContent>
                           </div>

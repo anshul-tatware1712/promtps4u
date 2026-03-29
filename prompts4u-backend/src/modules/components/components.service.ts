@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateComponentDto } from './dto/create-component.dto';
 import { QueryComponentsDto } from './dto/query-components.dto';
@@ -8,43 +8,48 @@ export class ComponentsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryComponentsDto) {
-    const { category, search, tier, page = 1, limit = 20 } = query;
+    try {
+      const { category, search, tier, page = 1, limit = 20 } = query;
 
-    const where: any = {};
+      const where: any = {};
 
-    if (category) {
-      where.category = category;
+      if (category) {
+        where.category = category;
+      }
+
+      if (tier) {
+        where.tier = tier;
+      }
+
+      if (search && search.trim().length > 0) {
+        where.OR = [
+          { name: { contains: search } },
+          { description: { contains: search } },
+          { tags: { has: search } },
+        ];
+      }
+
+      const [data, total] = await Promise.all([
+        this.prisma.component.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        this.prisma.component.count({ where }),
+      ]);
+
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      console.error('Error in findAll:', error);
+      throw new BadRequestException(`Failed to fetch components: ${error.message}`);
     }
-
-    if (tier) {
-      where.tier = tier;
-    }
-
-    if (search && search.trim().length > 0) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { tags: { has: search } },
-      ];
-    }
-
-    const [data, total] = await Promise.all([
-      this.prisma.component.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.component.count({ where }),
-    ]);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findOne(id: string) {
